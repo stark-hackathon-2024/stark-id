@@ -1,3 +1,4 @@
+import json
 import os
 from django.conf import settings
 from django.http import JsonResponse
@@ -47,11 +48,17 @@ def generate_merkle_tree_and_signature(**fields):
     root_hash = tree.get_root()
 
     # Generate a signing key (use your persistent private key in production)
-    sk = SigningKey.generate(curve=SECP256k1)
-    vk = sk.get_verifying_key()
+    # sk = SigningKey.generate(curve=SECP256k1)
+    # vk = sk.get_verifying_key()
+    with open('keys', 'r') as f:
+        key_data = json.load(f)
+        sk = SigningKey.from_string(bytes.fromhex(key_data['private']), curve=SECP256k1)
+        
+        vk = key_data['public']
+    
 
     # Sign the root hash
-    signature = sk.sign(to_bytes(root_hash))
+    signature = sk.sign_deterministic(to_bytes(root_hash))
 
      # Get a visualization of the tree
     tree_representation = tree.visualize_tree()
@@ -92,7 +99,7 @@ def index(request):
             # Replace this with arbitrary code
 
             fields = {
-                "starknet_address": starknet_address,
+                "starknet_address": int(starknet_address),
                 "id_number_hash": pedersen_hash(int(id_number), 0),
                 "first_name": first_name,
                 "last_name": last_name,
@@ -108,7 +115,7 @@ def index(request):
             output_text += (f"Hashed ID: {pedersen_hash(int(id_number), 0)}\n")
             output_text += (f"Root Hash: {result['root_hash']}\n")
             output_text += (f"Signature: {result['signature'].hex()} \n")
-            output_text += (f"Verifying Key: {result['verifying_key'].to_string().hex()} \n")
+            output_text += (f"Verifying Key: {result['verifying_key']} \n")
             output_text += (f"\nMerkle Tree Visualization:\n{result['tree_representation']}")
         
             return render(request, 'index.html', {'form': form, 'output_text': output_text})

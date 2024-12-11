@@ -68,7 +68,7 @@ class PedersenMerkleTree:
         tree_representation = ""
         for level in self.tree:
             # tree_representation += " ".join(map(str, level)) + "\n"
-            tree_representation += " ".join([f"{str(hex(x))[:5]}" for x in level]) + "\n"
+            tree_representation += " ".join([f"{str(hex(x))}" for x in level]) + "\n"
         return tree_representation
 
 if __name__ == "__main__":
