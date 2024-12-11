@@ -1,7 +1,9 @@
 
 import math
 from fast_pedersen_hash import pedersen_hash
-from utils import from_bytes
+from utils import from_bytes, to_bytes
+from ecdsa import SigningKey, SECP256k1
+import json
 
 # # Dummy implementation of pedersen_hash function
 # def pedersen_hash(left, right):
@@ -70,14 +72,76 @@ class PedersenMerkleTree:
             # tree_representation += " ".join(map(str, level)) + "\n"
             tree_representation += " ".join([f"{str(hex(x))}" for x in level]) + "\n"
         return tree_representation
+    
+def generate_merkle_tree_and_signature(**fields):
+    # Create a Merkle tree
+    tree = PedersenMerkleTree([value for key, value in fields.items()])
+
+    # Get the root of the Merkle tree
+    root_hash = tree.get_root()
+
+    # Generate a signing key (use your persistent private key in production)
+    # sk = SigningKey.generate(curve=SECP256k1)
+    # vk = sk.get_verifying_key()
+    with open('keys', 'r') as f:
+        key_data = json.load(f)
+        sk = SigningKey.from_string(bytes.fromhex(key_data['private']), curve=SECP256k1)
+        
+        vk = key_data['public']
+    
+
+    # Sign the root hash
+    signature = sk.sign_deterministic(to_bytes(root_hash))
+
+    # Get a visualization of the tree
+    tree_representation = tree.visualize_tree()
+
+    return {
+        'merkle_tree': tree,
+        'root_hash': root_hash,
+        'signature': signature,
+        'verifying_key': vk,
+        'tree_representation': tree_representation
+    }
 
 if __name__ == "__main__":
-    data = ["Alice", "Bob", "Charlie", "David", "Eve"]
-    merkle_tree = PedersenMerkleTree(data)
-    print("Merkle Tree Visualization:")
-    print(merkle_tree.visualize_tree())
-    print("Root Hash:", str(hex(merkle_tree.get_root()))[:5])
-    index = 2
-    decommitment_path = merkle_tree.get_decommitment_path(index)
-    print(f"Decommitment Path for Leaf {index}:", [str(hex(x))[:5] for x in merkle_tree.get_decommitment_path(index)])
-    print("Proof Verification:", merkle_tree.verify_proof(merkle_tree.leaves[index], decommitment_path, merkle_tree.get_root(), index))
+    # data = ["Alice", "Bob", "Charlie", "David", "Eve"]
+    # merkle_tree = PedersenMerkleTree(data)
+    # print("Merkle Tree Visualization:")
+    # print(merkle_tree.visualize_tree())
+    # print("Root Hash:", str(hex(merkle_tree.get_root()))[:5])
+    # index = 2
+    # decommitment_path = merkle_tree.get_decommitment_path(index)
+    # print(f"Decommitment Path for Leaf {index}:", [str(hex(x))[:5] for x in merkle_tree.get_decommitment_path(index)])
+    # print("Proof Verification:", merkle_tree.verify_proof(merkle_tree.leaves[index], decommitment_path, merkle_tree.get_root(), index))
+    # print()
+
+    first_name = "Gali"
+    last_name = "Michlevich"
+    id_number = 12345679
+    date_of_birth = "2024-12-12"
+    nationality = "Israeli"
+    starknet_address = 1926620936695478438856464323891613522855988234423992806332074754206677183311
+    favorite_color = "Red"
+    favorite_animal = "Dog"
+
+    fields = {
+                "starknet_address": int(starknet_address),
+                "id_number_hash": pedersen_hash(int(id_number), 0),
+                "first_name": first_name,
+                "last_name": last_name,
+                "date_of_birth": str(date_of_birth),
+                "nationality": nationality,
+                "favorite_color": favorite_color,
+                "favorite_animal": favorite_animal
+            }
+
+    result = generate_merkle_tree_and_signature(**fields)
+    output_text = (f"Name: {first_name} {last_name}, ID: {id_number}, DOB: {date_of_birth}, Nationality: {nationality} \n"
+                           f"Starknet Address: {starknet_address} \n Favorite Color: {favorite_color}, Favorite Animal: {favorite_animal} \n\n")
+    output_text += (f"Hashed ID: {pedersen_hash(int(id_number), 0)}\n")
+    output_text += (f"Root Hash: {result['root_hash']}\n\n")
+    output_text += (f"Signature: {result['signature'].hex()} \n")
+    output_text += (f"Verifying Key: {result['verifying_key']} \n")
+    output_text += (f"\nMerkle Tree Visualization:\n{result['tree_representation']}")
+    print(output_text)

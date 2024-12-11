@@ -1,17 +1,11 @@
-import json
 import os
 from django.conf import settings
-from django.http import JsonResponse
 from django.shortcuts import render
 from django.urls import path
 from django.core.wsgi import get_wsgi_application
 from django import forms
-from django.http import HttpResponse
-from ecdsa import SigningKey, SECP256k1
-import hashlib
-from merkle import PedersenMerkleTree as MerkleTree
+from merkle import generate_merkle_tree_and_signature
 from fast_pedersen_hash import pedersen_hash
-from utils import to_bytes
 
 
 # Define settings
@@ -39,37 +33,6 @@ settings.configure(
         },
     ],
 )
-
-def generate_merkle_tree_and_signature(**fields):
-    # Create a Merkle tree
-    tree = MerkleTree([value for key, value in fields.items()])
-
-    # Get the root of the Merkle tree
-    root_hash = tree.get_root()
-
-    # Generate a signing key (use your persistent private key in production)
-    # sk = SigningKey.generate(curve=SECP256k1)
-    # vk = sk.get_verifying_key()
-    with open('keys', 'r') as f:
-        key_data = json.load(f)
-        sk = SigningKey.from_string(bytes.fromhex(key_data['private']), curve=SECP256k1)
-        
-        vk = key_data['public']
-    
-
-    # Sign the root hash
-    signature = sk.sign_deterministic(to_bytes(root_hash))
-
-     # Get a visualization of the tree
-    tree_representation = tree.visualize_tree()
-
-    return {
-        'merkle_tree': tree,
-        'root_hash': root_hash,
-        'signature': signature,
-        'verifying_key': vk,
-        'tree_representation': tree_representation
-    }
 
 
 # Define a form class
@@ -111,9 +74,9 @@ def index(request):
 
             result = generate_merkle_tree_and_signature(**fields)
             output_text = (f"Name: {first_name} {last_name}, ID: {id_number}, DOB: {date_of_birth}, Nationality: {nationality} \n"
-                           f"Starknet Address: {starknet_address} \n Favorite Color: {favorite_color}, Favorite Animal: {favorite_animal} \n")
+                           f"Starknet Address: {starknet_address} \n Favorite Color: {favorite_color}, Favorite Animal: {favorite_animal} \n\n")
             output_text += (f"Hashed ID: {pedersen_hash(int(id_number), 0)}\n")
-            output_text += (f"Root Hash: {result['root_hash']}\n")
+            output_text += (f"Root Hash: {result['root_hash']}\n\n")
             output_text += (f"Signature: {result['signature'].hex()} \n")
             output_text += (f"Verifying Key: {result['verifying_key']} \n")
             output_text += (f"\nMerkle Tree Visualization:\n{result['tree_representation']}")
@@ -140,10 +103,10 @@ with open(template_path, 'w') as f:
     f.write('''<!DOCTYPE html>
 <html>
 <head>
-    <title>Django Web Service</title>
+    <title>Authentication Service</title>
 </head>
 <body class="container mt-5">
-    <h1 class="mb-4">Django Web Service</h1>
+    <h1 class="mb-4">Authentication Service</h1>
     <form method="post" class="needs-validation" novalidate>
         {% csrf_token %}
         {{ form.as_p }}
@@ -151,7 +114,7 @@ with open(template_path, 'w') as f:
     </form>
     {% if output_text %}
         <div class="alert alert-success mt-4" role="alert">
-            <p>Output: {{ output_text|linebreaksbr }}</p>
+            <p>{{ output_text|linebreaksbr }}</p>
         </div>
     {% endif %}
 </body>
