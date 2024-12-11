@@ -77,7 +77,7 @@ def index(request):
                            f"Starknet Address: {starknet_address} \n Favorite Color: {favorite_color}, Favorite Animal: {favorite_animal} \n\n")
             output_text += (f"Hashed ID: {pedersen_hash(int(id_number), 0)}\n")
             output_text += (f"Root Hash: {result['root_hash']}\n\n")
-            output_text += (f"Signature: {result['signature'].hex()} \n")
+            output_text += (f"Signature: {result['signature']} \n")
             output_text += (f"Verifying Key: {result['verifying_key']} \n")
             output_text += (f"\nMerkle Tree Visualization:\n{result['tree_representation']}")
         

@@ -4,6 +4,7 @@ from fast_pedersen_hash import pedersen_hash
 from utils import from_bytes, to_bytes
 from ecdsa import SigningKey, SECP256k1
 import json
+from starkware.crypto.signature.signature import sign
 
 # # Dummy implementation of pedersen_hash function
 # def pedersen_hash(left, right):
@@ -85,13 +86,15 @@ def generate_merkle_tree_and_signature(**fields):
     # vk = sk.get_verifying_key()
     with open('keys', 'r') as f:
         key_data = json.load(f)
-        sk = SigningKey.from_string(bytes.fromhex(key_data['private']), curve=SECP256k1)
+        sk = key_data['private']
         
         vk = key_data['public']
     
 
     # Sign the root hash
-    signature = sk.sign_deterministic(to_bytes(root_hash))
+    # signature = sk.sign_deterministic(to_bytes(root_hash))
+    signature = sign(root_hash, int(sk))
+    signature = (signature[0], signature[1])
 
     # Get a visualization of the tree
     tree_representation = tree.visualize_tree()
@@ -141,7 +144,7 @@ if __name__ == "__main__":
                            f"Starknet Address: {starknet_address} \n Favorite Color: {favorite_color}, Favorite Animal: {favorite_animal} \n\n")
     output_text += (f"Hashed ID: {pedersen_hash(int(id_number), 0)}\n")
     output_text += (f"Root Hash: {result['root_hash']}\n\n")
-    output_text += (f"Signature: {result['signature'].hex()} \n")
+    output_text += (f"Signature: {result['signature']} \n")
     output_text += (f"Verifying Key: {result['verifying_key']} \n")
     output_text += (f"\nMerkle Tree Visualization:\n{result['tree_representation']}")
     print(output_text)
