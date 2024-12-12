@@ -84,7 +84,7 @@ def generate_merkle_tree_and_signature(**fields):
     # Generate a signing key (use your persistent private key in production)
     # sk = SigningKey.generate(curve=SECP256k1)
     # vk = sk.get_verifying_key()
-    with open('keys', 'r') as f:
+    with open('AuthServer/keys', 'r') as f:
         key_data = json.load(f)
         sk = key_data['private']
         
